@@ -9,10 +9,13 @@
  */
 package org.openmrs;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Date;
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -147,6 +150,138 @@ public class PatientTest {
 		Patient p = new Patient();
 		p.setIdentifiers(null);
 		p.addIdentifier(new PatientIdentifier());
+	}
+	
+	/**
+	 * @see Patient#getPatientIdentifier(Integer)
+	 */
+	@Test
+	@Verifies(value = "should return identifier with matching Id", method = "getPatientIdentifier(Integer)")
+	public void getPatientIdentifier_shouldReturnIdentifierWithMatchingId() throws Exception {
+		Patient p = new Patient();
+		
+		PatientIdentifier pa1 = new PatientIdentifier();
+		
+		pa1.setIdentifier("firsttest");
+		pa1.setIdentifierType(new PatientIdentifierType(1));
+		pa1.setDateCreated(new Date());
+		pa1.setVoided(false);
+		p.addIdentifier(pa1);
+		
+		
+		PatientIdentifier pa2 = new PatientIdentifier();
+		pa2.setIdentifier("secondtest");
+		pa2.setIdentifierType(new PatientIdentifierType(2));
+		pa2.setVoided(false);
+		
+		p.addIdentifier(pa2);
+		
+		PatientIdentifier pa3 = new PatientIdentifier();
+		pa3.setIdentifierType(pa1.getIdentifierType());
+		pa3.setIdentifier(pa3.getIdentifier() + "some new string to make sure it gets added");
+		pa3.setVoided(false);
+		pa3.setDateCreated(new Date(pa1.getDateCreated().getTime() + 1));
+		p.addIdentifier(pa3);
+		
+		//should return first (preferred) identifier instead of third
+		assertEquals(pa1, p.getPatientIdentifier(1));
+		assertEquals(pa2, p.getPatientIdentifier(2));
+		assertNull(p.getPatientIdentifier(10));
+	}
+	
+	/**
+	 * @see Patient#getPatientIdentifier(String)
+	 */
+	@Test
+	@Verifies(value = "should return identifier with matching type name", method = "getPatientIdentifier(String)")
+	public void getPatientIdentifier_shouldReturnIdentifierWithMatchingTypeName() throws Exception {
+		Patient p = new Patient();
+		
+		PatientIdentifier pa1 = new PatientIdentifier();
+		
+		pa1.setIdentifier("firsttest");
+		PatientIdentifierType driversLicense = new PatientIdentifierType(1);
+		driversLicense.setName("Drivers License");
+		pa1.setIdentifierType(driversLicense);
+		pa1.setDateCreated(new Date());
+		pa1.setVoided(false);
+		p.addIdentifier(pa1);
+		
+		
+		PatientIdentifier pa2 = new PatientIdentifier();
+		pa2.setIdentifier("secondtest");
+		PatientIdentifierType studentId = new PatientIdentifierType(2);
+		studentId.setName("Student Id");
+		pa2.setIdentifierType(studentId);
+		pa2.setVoided(false);
+		
+		p.addIdentifier(pa2);
+		
+		PatientIdentifier pa3 = new PatientIdentifier();
+		pa3.setIdentifier("thirdtest");
+		studentId = new PatientIdentifierType(2);
+		studentId.setName("Student Id");
+		pa3.setIdentifierType(studentId);
+		pa3.setVoided(false);
+		pa3.setDateCreated(new Date(pa1.getDateCreated().getTime() + 1));
+		p.addIdentifier(pa3);
+		
+		assertEquals(pa1, p.getPatientIdentifier("Drivers License"));
+		//should return pa3 because it is preferred based on default ordering
+		assertEquals(pa3, p.getPatientIdentifier("Student Id"));
+		assertNull(p.getPatientIdentifier("Full Name"));
+	}
+
+	/**
+	 * @see Patient#getPatientIdentifiers(PatientIdentifierType)
+	 */
+	@Test
+	@Verifies(value = "should return identifiers with matching type", method = "getPatientIdentifiers(PatientIdentifierType)")
+	public void getPatientIdentifiers_shouldReturnIdentifiersWithMatchingType() throws Exception {
+		Patient p = new Patient();
+		
+		PatientIdentifierType type1 = new PatientIdentifierType(1);
+		PatientIdentifierType type2 = new PatientIdentifierType(2);
+		
+		PatientIdentifier pa1 = new PatientIdentifier();
+		
+		pa1.setIdentifier("firsttest");
+		pa1.setIdentifierType(type1);
+		pa1.setDateCreated(new Date());
+		pa1.setVoided(false);
+		p.addIdentifier(pa1);
+		
+		PatientIdentifier pa2 = new PatientIdentifier();
+		pa2.setIdentifier("secondtest");
+		pa2.setIdentifierType(type2);
+		pa2.setVoided(false);
+		p.addIdentifier(pa2);
+		
+		PatientIdentifier pa3 = new PatientIdentifier();
+		pa3.setIdentifierType(type1);
+		pa3.setIdentifier(pa3.getIdentifier() + "some new string to make sure it gets added");
+		pa3.setVoided(false);
+		pa3.setDateCreated(new Date(pa1.getDateCreated().getTime() + 1));
+		p.addIdentifier(pa3);
+		
+		PatientIdentifier pa4 = new PatientIdentifier();
+		pa4.setIdentifier("fourthtest");
+		pa4.setIdentifierType(type2);
+		pa4.setVoided(true);
+		p.addIdentifier(pa4);
+		
+		//Should contain pa1 and pa3 since they are not void
+		List<PatientIdentifier> type1Identifiers = p.getPatientIdentifiers(type1);
+		assertEquals(2, type1Identifiers.size());
+		assertEquals(pa1, type1Identifiers.get(0));
+		assertEquals(pa3, type1Identifiers.get(1));
+		
+		//Should only contain pa2 since pa4 is void
+		List<PatientIdentifier> type2Identifiers = p.getPatientIdentifiers(type2);
+		assertEquals(1, type2Identifiers.size());
+		
+		List<PatientIdentifier> nonexistantIdentifiers = p.getPatientIdentifiers(new PatientIdentifierType(3));
+		assertEquals(0, nonexistantIdentifiers.size());
 	}
 	
 	/**
